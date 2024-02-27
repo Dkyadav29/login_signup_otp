@@ -1,0 +1,7 @@
+1)Sign up  with mobile number and verify number with otp.
+Nd then save user profile : name , number email , photo.
+2. Login with number and otp and get user profile.
+3. ⁠integrate push notification on WhatsApp number .
+
+
+
