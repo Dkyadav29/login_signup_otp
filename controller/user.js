@@ -36,27 +36,94 @@ const usersignUp = async (req, res) => {
   }
 };
 
+// send otp
+// Add this endpoint definition to your existing code
+const sendOtp = async (req, res) => {
+  const { number } = req.body;
 
-// userLogin  controller 
+  // Check if the user exists
+  const user = await User.findOne({ number });
 
-const userLogin = async (req,res) =>{
-  // first check in user db in incoming with client  req number 
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+
+  const otp = generateOTP();
+
+  await user.save();
+
+  // Send OTP
+  await sendOTP(number, otp);
+};
+
+// userLogin  controller
+
+const userLogin = async (req, res) => {
+  // first check in user db in incoming with client  req number
   const { number, otp } = req.body;
 
   //  search user according to number and check the OTP
   const user = await User.findOne({ number });
   if (!user || user.otp.code !== otp || user.otp.expiresAt < new Date()) {
-      return res.status(401).json({ success: false, message: 'Invalid OTP or OTP expired' });
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid OTP or OTP expired" });
   }
 
   // Clear the OTP after successful login
-  user.otp = { code: '', expiresAt: null };
+  user.otp = { code: "", expiresAt: null };
   await user.save();
 
-  res.json({ success: true, message: 'Login successful', user });
+  res.json({ success: true, message: "Login successful", user });
 };
 
+const userProfile = async (req, res) => {
+  const { number } = req.body;
 
+  try {
+    // Fetch the user by phone number
+    const user = await User.findOne({ number });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Return the user profile
+    const userProfile = {
+      id: user._id,
+      number: user.number,
+      // Include other user profile fields as needed
+    };
+
+    res.json({ success: true, user: userProfile });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// // Route for sending push notification
+const whatsappPushNotification = async (req, res) => {
+  const { number, message } = req.body;
+
+  try {
+    // Send push notification via WhatsApp using Twilio
+    await twilioClient.messages.create({
+      body: message,
+      from: `whatsapp:${twilioPhoneNumber}`,
+      to: `whatsapp:${number}`,
+    });
+
+    res.json({ success: true, message: "Notification sent successfully" });
+  } catch (error) {
+    console.error("Error sending WhatsApp notification:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error sending WhatsApp notification" });
+  }
+};
 
 const verifyOTP = async (req, res) => {
   try {
@@ -88,4 +155,11 @@ const verifyOTP = async (req, res) => {
   }
 };
 
-module.exports = { usersignUp, userLogin, verifyOTP };
+module.exports = {
+  usersignUp,
+  userLogin,
+  sendOtp,
+  verifyOTP,
+  userProfile,
+  whatsappPushNotification,
+};
